@@ -11,23 +11,17 @@
 		maxForce = 500,
 		time = +new Date().getTime(),
 		FPS = 60,
+		switchAudio = false,
+		nodeIndex = 0;
 		body = document.querySelector( 'body' );
-	this.nodeTree = null;
+	this.allowSwitchAudio = function ()
+	{
+		switchAudio = true;
+	};
+	this.nodeTree = [];
 	this.addNode = function ( message, timeout, animation )
 	{
-		if ( !!( god.nodeTree ) )
-		{
-			var current = god.nodeTree;
-			while ( current.next !== false )
-			{
-				current = god.nodeTree.next;
-			}
-			current.next = new node( message, timeout, animation );
-		}
-		else
-		{
-			god.nodeTree = new node( message, timeout, animation );
-		}
+		god.nodeTree.push(new node( message, timeout, animation ));
 		return god;
 	};
 	var node = function ( message, timeout, animation )
@@ -36,7 +30,6 @@
 			message: message,
 			timeout: timeout,
 			animation: animation,
-			next: false,
 			then: function () { }
 		};
 	};
@@ -44,15 +37,7 @@
 	this.then = function ( callback )
 	{
 		callback = callback || function ( god ) { };
-		if ( !!( god.nodeTree ) )
-		{
-			var current = god.nodeTree;
-			while ( current.next !== false )
-			{
-				current = god.nodeTree.next;
-			}
-			current.then = callback;
-		}
+		god.nodeTree[god.nodeTree.length - 1].then = callback;
 		return god;
 	};
 
@@ -62,9 +47,8 @@
 		box: '',
 		colors: [],
 		audio: '',
-		maxParticles: 100
+		maxParticles: 100,
 	};
-
 	this.setMaxParticles = function ( max )
 	{
 		god.options.maxParticles = max;
@@ -73,13 +57,7 @@
 	this.setSoundtrack = function ( name )
 	{
 		/// <summary>Set soundtrack from predefined list or by href</summary>
-		/// <param name="name" type="String">Soundtrack to set. Provide valid src or choose one from the predefined:
-		///  &#10; 'kira' for kira fled the district
-		///  &#10; 'daydream' for living the daydream inst
-		///  &#10; 'wire' for 'thewire'
-		///  &#10; 'helium' for 'helium hues'
-		///  &#10; 'winter' for 'winter empire'
-		/// </param>
+		/// <param name="name" type="String">Soundtrack to set. Provide valid src.</param>
 		var audio = document.querySelector( 'audio' );
 		if ( !audio )
 		{
@@ -87,9 +65,8 @@
 			audio.removeAttribute( 'controls' );
 			audio.loop = true;
 			audio.volume = 0.5;
+			body.appendChild( audio );
 		}
-		body.appendChild( audio );
-
 		audio.src = name;
 		god.options.audio = audio;
 
@@ -167,8 +144,24 @@
 		}
 		else
 		{
-		mouse.x = event.pageX - god.options.canvas.offsetLeft;
-		mouse.y = event.pageY - god.options.canvas.offsetTop;
+			mouse.x = event.pageX - god.options.canvas.offsetLeft;
+			mouse.y = event.pageY - god.options.canvas.offsetTop;
+		}
+		if ( !!switchAudio )
+		{
+			var audio = document.querySelector( 'audio.audio-2' );
+			if ( !audio )
+			{
+				audio = document.createElement( 'audio' );
+				audio.className = 'audio-2';
+				audio.removeAttribute( 'controls' );
+				audio.loop = true;
+				audio.volume = 1;
+				body.appendChild( audio );
+				audio.src = '../audio/onTouch.mp3';//danosongs.com-living-the-daydream-instr.mp3'
+			}
+			god.options.audio.pause();
+			audio.play();
 		}
 	}
 
@@ -176,6 +169,14 @@
 	{
 		event.preventDefault();
 		isTouchingScreen = false;
+		if (!!switchAudio )
+		{
+			var audio = document.querySelector( 'audio.audio-2' );
+			audio.pause();
+			audio.currentTime = 0;
+			god.options.audio.play();
+		}
+
 	}
 
 	function mouseMove( event )
@@ -246,9 +247,18 @@
 	/*
 	 * Create god.options.particles.
 	 */
+	function clearParticles()
+	{
+		[].forEach.call( god.options.particles, function ( e, i )
+		{
+			e.clear();
 
+		} );
+	}
 	function createParticles()
 	{
+		clearParticles();
+		god.options.particles = [];
 		for ( var quantity = 0, len = god.options.maxParticles; quantity < len; quantity++ )
 		{
 			var x = 10 + ( window.innerWidth || canvas.width ) / len * quantity,
@@ -420,7 +430,7 @@
 			particle.goalY = ( center.y + radius * Math.sin( steps ) );
 		};
 
-		this.spiral = function ( center, particle, index, angle, force )
+		this.spiral = function ( center, particle, index, angle, radius, force )
 		{
 			/// <summary>
 			/// Sets the particle transform function to spiral.
@@ -429,10 +439,12 @@
 			/// <param name="center">Canvas center, provided by animation callback.</param>
 			/// <param name="index">Current particle number, provided by animation callback.</param>
 			/// <param name="angle">User provided. Spiral angle multiplicator. Default is 0.2. </param>
+			/// <param name="radius">User provided. Circle radius around the center.Default is 15. </param>
 			/// <param name="force">User provided. Touch event explosion parameter. Bigger force => bigger explosion. Default is 725. </param>
 
 			maxForce = force || 725;
 			angle = angle || 0.2;
+			radius = radius || 15;
 			var currentAngle = index * angle;
 			particle.goalX = ( center.x + ( currentAngle * radius ) * Math.cos( currentAngle ) );
 			particle.goalY = ( center.y + ( currentAngle * radius ) * Math.sin( currentAngle ) );
@@ -531,17 +543,17 @@
 	{
 		if ( god.currentNode === null )
 		{
-			god.currentNode = god.nodeTree;
+			god.currentNode = god.nodeTree[0];
 			god.updateBox( god.currentNode.message );
 			time = +new Date().getTime();
 		}
 		if ( +new Date().getTime() - time > god.currentNode.timeout )
 		{
 			god.currentNode.then( god );
-			if ( god.currentNode.next )
-				god.currentNode = god.currentNode.next;
-			else
-				god.currentNode = god.nodeTree;
+			nodeIndex += 1;
+			if ( nodeIndex === god.nodeTree.length)
+				nodeIndex = 0;
+			god.currentNode = god.nodeTree[nodeIndex];
 			god.updateBox( god.currentNode.message );
 			time = +new Date().getTime();
 		}
@@ -595,20 +607,74 @@
 function start()
 {
 	var animation = new anima()
-		.setSoundtrack( '../audio/danosongs.com-living-the-daydream-instr.mp3' )
-	//   .playMusic()
-	.setParticleColors( ['#553bb2', '#eff63a', '#e14743'] )
-		.addNode( 'What would you like to enjoy today?', 7000, function ( funcs, canvas, center, particle, index, angle, steps )
+		.setSoundtrack( '../audio/you-always-make-me-smile.mp3' )
+	    .playMusic()
+		.setParticleColors( ['#553bb2', '#eff63a', '#e14743'] )
+		.addNode( 'What would you like to enjoy today?', 4000, function ( funcs, canvas, center, particle, index, angle, steps )
 		{
-			funcs.devilsCurve( center, particle, steps, 180, 87 );
-		} )
-		.addNode( 'What would you like to invent today?', 7000, function ( funcs, canvas, center, particle, index, angle, steps )
-		{
-			funcs.bottomRightToTopLeft( particle );
+			//funcs.straightLine( canvas, particle, index );
+			funcs.spiral( center, particle, index, 0.2, 15 );
 		} )
 		.then( function ( e )
 		{
-			console.log( e );
+			setTimeout( function ()
+			{
+				var node = e.currentNode.animation;
+				var orig = node;
+				e.currentNode.animation = function ( n, t, i, r, u, f, e ) { n.circle( i, r, e, 100 ); };
+				e.updateBox( 'Circle?' );
+				setTimeout( function ()
+				{
+					e.updateBox( 'Millenia too late.' );
+					e.currentNode.animation = orig;
+				}, 2000 );
+			}, 3000 );
+		
+		} )
+		.addNode( 'What would you like to invent today?', 8000, function ( funcs, canvas, center, particle, index, angle, steps )
+		{
+			funcs.circle( center, particle, steps, 250 );
+		} )
+		.addNode( 'Every day, something we make makes your life better.', 5000, function ( funcs, canvas, center, particle, index, angle, steps )
+		{
+			//funcs.fastBottomRightToTopLeft( particle );
+			funcs.bottomRightToTopLeft( particle );
+			//funcs.heartCurve( center, particle, index );
+		} )
+		.then( function ( e )
+		{
+			setTimeout( function ()
+			{
+				// god.knownFunctions, god.options.canvas, center, particle, index, angle, steps
+				var node = e.currentNode.animation;
+				var orig = node;
+				e.currentNode.animation = function ( n, t, i, r, u, f, e )
+				{
+					n.spiral( i, r, u, 0.2, 15 );
+					//n.circle( i, r, e, 200 );
+				};
+				setTimeout( function ()
+				{
+					e.currentNode.animation = function ( n, t, i, r, u, f, e )
+					{
+						n.circle( i, r, e, 200 );
+					};
+				}, 4000 );
+			}, 2000 );
+
+		} )
+		.addNode( 'For us business means working together for a common goal.', 8000, function ( funcs, canvas, center, particle, index, angle, steps )
+		{
+			funcs.vaginaCurve( center, particle, steps );
+			//funcs.fastBottomRightToTopLeft( particle );
+		} )
+		.addNode( 'We design & develop.', 4000, function ( funcs, canvas, center, particle, index, angle, steps )
+		{
+			funcs.bottomToTop( particle );
+		} )
+		.addNode( 'For You. ❤', 40000, function ( funcs, canvas, center, particle, index, angle, steps )
+		{
+			funcs.heartCurve( center, particle, index );
 		} )
 		.setBackgroundColor( '#fff', '#eff6e6' )
 		.play();
