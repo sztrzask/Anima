@@ -247,18 +247,9 @@
 	/*
 	 * Create god.options.particles.
 	 */
-	function clearParticles()
-	{
-		[].forEach.call( god.options.particles, function ( e, i )
-		{
-			e.clear();
 
-		} );
-	}
 	function createParticles()
 	{
-		clearParticles();
-		god.options.particles = [];
 		for ( var quantity = 0, len = god.options.maxParticles; quantity < len; quantity++ )
 		{
 			var x = 10 + ( window.innerWidth || canvas.width ) / len * quantity,
