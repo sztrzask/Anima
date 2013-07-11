@@ -621,11 +621,14 @@ function start()
 			{
 				var node = e.currentNode.animation;
 				var orig = node;
-				e.currentNode.animation = function ( n, t, i, r, u, f, e ) { n.circle( i, r, e, 100 ); };
+				e.currentNode.animation = function ( n, t, i, r, u, f, e )
+				{
+					n.circle( i, r, e, 100 );
+				};
 				e.updateBox( 'Circle?' );
 				setTimeout( function ()
 				{
-					e.updateBox( 'Millenia too late.' );
+					e.updateBox( "We don't do that." );
 					e.currentNode.animation = orig;
 				}, 2000 );
 			}, 3000 );
@@ -650,22 +653,15 @@ function start()
 				var orig = node;
 				e.currentNode.animation = function ( n, t, i, r, u, f, e )
 				{
-					n.spiral( i, r, u, 0.2, 15 );
+					n.straightLine( t, r, u );
+					//n.spiral( i, r, u, 0.2, 15 );
 					//n.circle( i, r, e, 200 );
 				};
-				setTimeout( function ()
-				{
-					e.currentNode.animation = function ( n, t, i, r, u, f, e )
-					{
-						n.circle( i, r, e, 200 );
-					};
-				}, 4000 );
-			}, 2000 );
-
+			}, 5000 );
 		} )
-		.addNode( 'For us business means working together for a common goal.', 8000, function ( funcs, canvas, center, particle, index, angle, steps )
+		.addNode( 'For us business means working together for a common goal.',6000, function ( funcs, canvas, center, particle, index, angle, steps )
 		{
-			funcs.vaginaCurve( center, particle, steps );
+			funcs.vaginaCurve( center, particle, steps, 290 );
 			//funcs.fastBottomRightToTopLeft( particle );
 		} )
 		.addNode( 'We design & develop.', 4000, function ( funcs, canvas, center, particle, index, angle, steps )
