@@ -12,8 +12,9 @@
 		time = +new Date().getTime(),
 		FPS = 60,
 		switchAudio = false,
-		nodeIndex = 0;
+		nodeIndex = 0,
 		body = document.querySelector( 'body' );
+
 	this.allowSwitchAudio = function ()
 	{
 		switchAudio = true;
@@ -117,6 +118,7 @@
 	{
 		god.options.box.innerHTML = '<p><span>' + message + '</span></p>';
 	};
+
 	/*
 	 * Utils
 	 */
@@ -135,6 +137,8 @@
 
 	function applyTouch( event )
 	{
+		if ((event.touches && event.touches[0].target.tagName.toLowerCase() !== 'canvas' ) || ( event.target.tagName.toLowerCase() !== 'canvas'))
+			return;
 		event.preventDefault();
 		isTouchingScreen = true;
 		if ( !!event.touches )
@@ -277,7 +281,7 @@
 
 	function render()
 	{
-		god.options.particles.forEach( function ( particle, index )
+		[].forEach.call(god.options.particles, function ( particle, index )
 		{
 			context.save();
 			context.globalCompositeOperation = 'lighter';
@@ -538,18 +542,20 @@
 			god.updateBox( god.currentNode.message );
 			time = +new Date().getTime();
 		}
-		if ( +new Date().getTime() - time > god.currentNode.timeout )
+		if ( !!god.currentNode.timeout )
 		{
-			god.currentNode.then( god );
-			nodeIndex += 1;
-			if ( nodeIndex === god.nodeTree.length)
-				nodeIndex = 0;
-			god.currentNode = god.nodeTree[nodeIndex];
-			god.updateBox( god.currentNode.message );
-			time = +new Date().getTime();
+			if ( +new Date().getTime() - time > god.currentNode.timeout )
+			{
+				god.currentNode.then( god );
+				nodeIndex += 1;
+				if ( nodeIndex === god.nodeTree.length )
+					nodeIndex = 0;
+				god.currentNode = god.nodeTree[nodeIndex];
+				god.updateBox( god.currentNode.message );
+				time = +new Date().getTime();
+			}
 		}
-
-		god.options.particles.forEach( function ( particle, index )
+		[].forEach.call( god.options.particles, function ( particle, index )
 		{
 			particle.clear();
 			var angle,
@@ -557,12 +563,12 @@
 				center = {
 					x: ( innerWidth || god.options.canvas.width ) * 0.5,
 					y: ( innerHeight || god.options.canvas.height ) * 0.5
-
 				};
 			angle = Math.atan2( particle.y - mouse.y, particle.x - mouse.x );
 			steps = Math.PI * 2 * index / god.options.particles.length;
 			particle.moveParticle( angle );
 			particle.pulsate();
+
 			god.currentNode.animation( god.knownFunctions, god.options.canvas, center, particle, index, angle, steps );
 		} );
 	}
@@ -594,76 +600,3 @@
 	initialize();
 	return god;
 }
-
-function start()
-{
-	var animation = new anima()
-		.setSoundtrack( '../audio/you-always-make-me-smile.mp3' )
-	    .playMusic()
-		.setParticleColors( ['#553bb2', '#eff63a', '#e14743'] )
-		.addNode( 'What would you like to enjoy today?', 4000, function ( funcs, canvas, center, particle, index, angle, steps )
-		{
-			//funcs.straightLine( canvas, particle, index );
-			funcs.spiral( center, particle, index, 0.2, 15 );
-		} )
-		.then( function ( e )
-		{
-			setTimeout( function ()
-			{
-				var node = e.currentNode.animation;
-				var orig = node;
-				e.currentNode.animation = function ( n, t, i, r, u, f, e )
-				{
-					n.circle( i, r, e, 100 );
-				};
-				e.updateBox( 'Circle?' );
-				setTimeout( function ()
-				{
-					e.updateBox( "We don't do that." );
-					e.currentNode.animation = orig;
-				}, 2000 );
-			}, 3000 );
-		
-		} )
-		.addNode( 'What would you like to invent today?', 8000, function ( funcs, canvas, center, particle, index, angle, steps )
-		{
-			funcs.circle( center, particle, steps, 250 );
-		} )
-		.addNode( 'Every day, something we make makes your life better.', 5000, function ( funcs, canvas, center, particle, index, angle, steps )
-		{
-			//funcs.fastBottomRightToTopLeft( particle );
-			funcs.bottomRightToTopLeft( particle );
-			//funcs.heartCurve( center, particle, index );
-		} )
-		.then( function ( e )
-		{
-			setTimeout( function ()
-			{
-				// god.knownFunctions, god.options.canvas, center, particle, index, angle, steps
-				var node = e.currentNode.animation;
-				var orig = node;
-				e.currentNode.animation = function ( n, t, i, r, u, f, e )
-				{
-					n.straightLine( t, r, u );
-					//n.spiral( i, r, u, 0.2, 15 );
-					//n.circle( i, r, e, 200 );
-				};
-			}, 5000 );
-		} )
-		.addNode( 'For us business means working together for a common goal.',6000, function ( funcs, canvas, center, particle, index, angle, steps )
-		{
-			funcs.vaginaCurve( center, particle, steps, 290 );
-			//funcs.fastBottomRightToTopLeft( particle );
-		} )
-		.addNode( 'We design & develop.', 4000, function ( funcs, canvas, center, particle, index, angle, steps )
-		{
-			funcs.bottomToTop( particle );
-		} )
-		.addNode( 'For You. ❤', 40000, function ( funcs, canvas, center, particle, index, angle, steps )
-		{
-			funcs.heartCurve( center, particle, index );
-		} )
-		.setBackgroundColor( '#fff', '#eff6e6' )
-		.play();
-}
-window.addEventListener ? window.addEventListener( 'load', start, false ) : window.onload = start;
